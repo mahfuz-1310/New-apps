@@ -1,0 +1,6 @@
+{
+  "name": "Password Manager",
+  "description": "Secure password manager with local storage and password generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
