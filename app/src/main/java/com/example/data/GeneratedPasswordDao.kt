@@ -15,4 +15,7 @@ interface GeneratedPasswordDao {
 
     @Query("DELETE FROM generated_passwords")
     suspend fun clearHistory()
+
+    @androidx.room.Delete
+    suspend fun deleteGeneratedPassword(password: GeneratedPasswordEntity)
 }

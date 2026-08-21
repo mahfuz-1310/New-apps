@@ -51,6 +51,12 @@ class PasswordViewModel(private val repository: PasswordRepository) : ViewModel(
             repository.clearGeneratedHistory()
         }
     }
+
+    fun deleteGeneratedPassword(password: GeneratedPasswordEntity) {
+        viewModelScope.launch {
+            repository.deleteGenerated(password)
+        }
+    }
 }
 
 class PasswordViewModelFactory(private val repository: PasswordRepository) : ViewModelProvider.Factory {

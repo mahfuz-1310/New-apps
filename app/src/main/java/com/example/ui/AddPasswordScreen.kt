@@ -1,10 +1,13 @@
 package com.example.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.MoreVert
@@ -78,6 +81,50 @@ fun PasswordStrengthIndicator(password: String) {
             color = if (strength == PasswordStrength.NONE) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else strength.color,
             modifier = Modifier.padding(top = 6.dp).align(Alignment.End),
             fontWeight = FontWeight.Medium
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        val hasLength = password.length >= 8
+        val hasUpper = password.any { it.isUpperCase() }
+        val hasLower = password.any { it.isLowerCase() }
+        val hasDigit = password.any { it.isDigit() }
+        val hasSymbol = password.any { !it.isLetterOrDigit() }
+        
+        ValidationRow("At least 8 characters", hasLength)
+        ValidationRow("Uppercase & lowercase", hasUpper && hasLower)
+        ValidationRow("Contains a number", hasDigit)
+        ValidationRow("Contains a symbol", hasSymbol)
+    }
+}
+
+@Composable
+fun ValidationRow(text: String, isValid: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isValid) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Valid",
+                modifier = Modifier.size(16.dp),
+                tint = Color(0xFF43A047)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .padding(2.dp)
+                    .background(Color.Transparent, CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), CircleShape)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isValid) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
     }
 }

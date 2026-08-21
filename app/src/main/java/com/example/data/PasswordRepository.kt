@@ -24,4 +24,8 @@ class PasswordRepository(
     suspend fun clearGeneratedHistory() {
         generatedPasswordDao.clearHistory()
     }
+
+    suspend fun deleteGenerated(password: GeneratedPasswordEntity) {
+        generatedPasswordDao.deleteGeneratedPassword(password)
+    }
 }

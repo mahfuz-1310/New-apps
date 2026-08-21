@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -122,13 +123,19 @@ fun PasswordHistoryScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(history) { passwordEntity ->
+                items(
+                    items = history,
+                    key = { it.id }
+                ) { passwordEntity ->
                     GeneratedPasswordItem(
                         passwordEntity = passwordEntity, 
                         onCopy = { copiedText ->
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("Password copied to clipboard")
                             }
+                        },
+                        onDelete = {
+                            viewModel.deleteGeneratedPassword(passwordEntity)
                         }
                     )
                 }
@@ -137,61 +144,112 @@ fun PasswordHistoryScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneratedPasswordItem(
     passwordEntity: GeneratedPasswordEntity,
-    onCopy: (String) -> Unit
+    onCopy: (String) -> Unit,
+    onDelete: () -> Unit = {}
 ) {
-    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-    val dateString = dateFormat.format(Date(passwordEntity.timestamp))
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = passwordEntity.passwordValue,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-            
-            IconButton(
-                onClick = {
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(passwordEntity.passwordValue))
-                    onCopy(passwordEntity.passwordValue)
-                },
-                modifier = Modifier.size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = GeometricPrimaryContainer,
-                    contentColor = GeometricOnPrimaryContainer
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy password",
-                    modifier = Modifier.size(20.dp)
-                )
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> {
+                    onDelete()
+                    true
+                }
+                else -> false
             }
         }
-    }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color by androidx.compose.animation.animateColorAsState(
+                targetValue = when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.Settled -> Color.Transparent
+                    else -> MaterialTheme.colorScheme.errorContainer
+                }
+            )
+            val icon = Icons.Default.Delete
+            val scale by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) 0.75f else 1f
+            )
+            
+            val alignment = when (dismissState.dismissDirection) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.CenterEnd
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                contentAlignment = alignment
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "Delete Icon",
+                    modifier = Modifier.size(24.dp).scale(scale),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        },
+        content = {
+            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+            val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+            val dateString = dateFormat.format(Date(passwordEntity.timestamp))
+        
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = passwordEntity.passwordValue,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = dateString,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = {
+                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(passwordEntity.passwordValue))
+                            onCopy(passwordEntity.passwordValue)
+                        },
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = GeometricPrimaryContainer,
+                            contentColor = GeometricOnPrimaryContainer
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy password",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
